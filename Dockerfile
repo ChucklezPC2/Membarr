@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-alpine
 
 RUN \
     echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
