@@ -36,5 +36,5 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: chucklezpc2/membarr:latest
+          tags: chucklezpc/membarr:latest
      
