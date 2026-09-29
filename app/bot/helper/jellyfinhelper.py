@@ -2,16 +2,34 @@ import requests
 import random
 import string
 
+def _auth(jellyfin_api_key, extra_headers=None):
+    """
+    Build auth for a Jellyfin request that works across old and new server
+    versions:
+      - X-Emby-Token header: supported since the earliest Jellyfin/Emby
+        releases and still supported in Jellyfin 12+.
+      - ApiKey query param: the current (non-deprecated) query param name
+        on Jellyfin 12+.
+      - api_key query param: the legacy query param name some older
+        Jellyfin versions expect; harmless to include alongside ApiKey.
+    Sending all three means the request authenticates regardless of which
+    server version is on the other end.
+    """
+    headers = {"X-Emby-Token": jellyfin_api_key}
+    if extra_headers:
+        headers.update(extra_headers)
+    querystring = {"ApiKey": jellyfin_api_key, "api_key": jellyfin_api_key}
+    return headers, querystring
+
 def add_user(jellyfin_url, jellyfin_api_key, username, password, jellyfin_libs):
     try:
         url = f"{jellyfin_url}/Users/New"
 
-        querystring = {"ApiKey":jellyfin_api_key}
+        headers, querystring = _auth(jellyfin_api_key, {"Content-Type": "application/json"})
         payload = {
             "Name": username,
             "Password": password
         }
-        headers = {"Content-Type": "application/json"}
         response = requests.request("POST", url, json=payload, headers=headers, params=querystring)
         userId = response.json()["Id"]
 
@@ -22,7 +40,7 @@ def add_user(jellyfin_url, jellyfin_api_key, username, password, jellyfin_libs):
         # Grant access to User
         url = f"{jellyfin_url}/Users/{userId}/Policy"
 
-        querystring = {"ApiKey":jellyfin_api_key}
+        headers, querystring = _auth(jellyfin_api_key)
 
         enabled_folders = []
         server_libs = get_libraries(jellyfin_url, jellyfin_api_key)
@@ -77,7 +95,7 @@ def add_user(jellyfin_url, jellyfin_api_key, username, password, jellyfin_libs):
             "PasswordResetProviderId": "Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider",
             "SyncPlayAccess": "CreateAndJoinGroups"
         }
-        headers = {"content-type": "application/json"}
+        headers["content-type"] = "application/json"
 
         response = requests.request("POST", url, json=payload, headers=headers, params=querystring)
 
@@ -92,8 +110,8 @@ def add_user(jellyfin_url, jellyfin_api_key, username, password, jellyfin_libs):
 
 def get_libraries(jellyfin_url, jellyfin_api_key):
     url = f"{jellyfin_url}/Library/VirtualFolders"
-    querystring = {"ApiKey":jellyfin_api_key}
-    response = requests.request("GET", url, params=querystring)
+    headers, querystring = _auth(jellyfin_api_key)
+    response = requests.request("GET", url, headers=headers, params=querystring)
 
     return  response.json()
     
@@ -125,8 +143,8 @@ def remove_user(jellyfin_url, jellyfin_api_key, jellyfin_username):
         # Delete User
         url = f"{jellyfin_url}/Users/{userId}"
 
-        querystring = {"ApiKey":jellyfin_api_key}
-        response = requests.request("DELETE", url, params=querystring)
+        headers, querystring = _auth(jellyfin_api_key)
+        response = requests.request("DELETE", url, headers=headers, params=querystring)
 
         if response.status_code == 204 or response.status_code == 200:
             return True
@@ -139,8 +157,8 @@ def remove_user(jellyfin_url, jellyfin_api_key, jellyfin_username):
 def get_users(jellyfin_url, jellyfin_api_key):
     url = f"{jellyfin_url}/Users"
 
-    querystring = {"ApiKey":jellyfin_api_key}
-    response = requests.request("GET", url, params=querystring)
+    headers, querystring = _auth(jellyfin_api_key)
+    response = requests.request("GET", url, headers=headers, params=querystring)
 
     return response.json()
 
@@ -163,13 +181,13 @@ def generate_password(length, lower=True, upper=True, numbers=True, symbols=True
 def get_config(jellyfin_url, jellyfin_api_key):
     url = f"{jellyfin_url}/System/Configuration"
 
-    querystring = {"ApiKey":jellyfin_api_key}
-    response = requests.request("GET", url, params=querystring, timeout=5)
+    headers, querystring = _auth(jellyfin_api_key)
+    response = requests.request("GET", url, headers=headers, params=querystring, timeout=5)
     return response.json()
 
 def get_status(jellyfin_url, jellyfin_api_key):
     url = f"{jellyfin_url}/System/Configuration"
 
-    querystring = {"ApiKey":jellyfin_api_key}
-    response = requests.request("GET", url, params=querystring, timeout=5)
+    headers, querystring = _auth(jellyfin_api_key)
+    response = requests.request("GET", url, headers=headers, params=querystring, timeout=5)
     return response.status_code
