@@ -6,6 +6,8 @@
 Membarr 
 =================
 
+This fork of Membarr was modified to work with Jellyfin 12 (and older versions).
+
 Membarr is a fork of Invitarr that invites discord users to Plex and Jellyfin. You can also automate this bot to invite discord users to a media server once a certain role is given to a user or the user can also be added manually.  
 
 ### Features
